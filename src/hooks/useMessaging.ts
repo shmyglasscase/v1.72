@@ -250,7 +250,7 @@ export const useMessaging = () => {
   }, [user, ablyChannel]);
 
   const subscribeToConversation = useCallback((conversationId: string) => {
-    if (!user || !conversationId) return;
+    if (!user || !conversationId || !ably) return;
 
     if (ablyChannel) {
       ablyChannel.unsubscribe();
@@ -422,7 +422,7 @@ export const useMessaging = () => {
   }, [ablyChannel]);
 
   const sendTypingStart = useCallback(() => {
-    if (ablyChannel) {
+    if (ablyChannel && ably) {
       ablyChannel.publish('typing_start', {
         userId: user?.id,
       });
@@ -430,7 +430,7 @@ export const useMessaging = () => {
   }, [ablyChannel, user]);
 
   const sendTypingStop = useCallback(() => {
-    if (ablyChannel) {
+    if (ablyChannel && ably) {
       ablyChannel.publish('typing_stop', {
         userId: user?.id,
       });

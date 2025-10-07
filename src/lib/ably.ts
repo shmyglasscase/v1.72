@@ -3,13 +3,13 @@ import * as Ably from 'ably';
 const ablyApiKey = import.meta.env.VITE_ABLY_API_KEY;
 
 if (!ablyApiKey) {
-  throw new Error('Missing Ably API key. Please add VITE_ABLY_API_KEY to your .env file');
+  console.warn('Missing Ably API key. Real-time messaging features will be disabled.');
 }
 
-export const ably = new Ably.Realtime({
+export const ably = ablyApiKey ? new Ably.Realtime({
   key: ablyApiKey,
   echoMessages: false,
-});
+}) : null;
 
 export type AblyMessage = {
   type: 'new_message' | 'delete_message' | 'update_conversation';
