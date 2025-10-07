@@ -1204,7 +1204,7 @@ React.useEffect(() => {
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-gray-600 dark:text-gray-400">Last Updated</span>
-                          <span className="text-sm text-gray-900 dark:text-white">September 21, 2025</span>
+                          <span className="text-sm text-gray-900 dark:text-white">October 7th, 2025</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-gray-600 dark:text-gray-400">Status</span>
