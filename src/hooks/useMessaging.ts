@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { RealtimeChannel } from '@supabase/supabase-js';
+import { ably, type AblyMessage } from '../lib/ably';
+import type { RealtimeChannel } from 'ably';
 
 export interface Conversation {
   id: string;
@@ -45,7 +46,7 @@ export const useMessaging = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [realtimeChannel, setRealtimeChannel] = useState<RealtimeChannel | null>(null);
+  const [ablyChannel, setAblyChannel] = useState<RealtimeChannel | null>(null);
 
   const fetchConversations = useCallback(async () => {
     if (!user) {
@@ -231,70 +232,75 @@ export const useMessaging = () => {
         ).sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime())
       );
 
+      if (ablyChannel) {
+        ablyChannel.publish('new_message', {
+          type: 'new_message',
+          data: data,
+        } as AblyMessage);
+      }
+
       return { data, error: null };
     } catch (error) {
       console.error('Error in sendMessage:', error);
       return { error: 'Failed to send message' };
     }
-  }, [user]);
+  }, [user, ablyChannel]);
 
   const subscribeToConversation = useCallback((conversationId: string) => {
     if (!user || !conversationId) return;
 
-    if (realtimeChannel) {
-      realtimeChannel.unsubscribe();
+    if (ablyChannel) {
+      ablyChannel.unsubscribe();
     }
 
-    const channel = supabase
-      .channel(`conversation:${conversationId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        (payload) => {
-          const newMessage = payload.new as Message;
+    const channel = ably.channels.get(`conversation:${conversationId}`);
 
-          setMessages((prev) => {
-            const exists = prev.some(msg => msg.id === newMessage.id);
-            if (exists) return prev;
-            return [...prev, newMessage];
-          });
+    channel.subscribe('new_message', (message) => {
+      const payload = message.data as AblyMessage;
+      const newMessage = payload.data as Message;
 
-          if (newMessage.sender_id !== user.id) {
-            supabase
-              .from('messages')
-              .update({ is_read: true, read_at: new Date().toISOString() })
-              .eq('id', newMessage.id);
+      setMessages((prev) => {
+        const exists = prev.some(msg => msg.id === newMessage.id);
+        if (exists) return prev;
+        return [...prev, newMessage];
+      });
 
-            setConversations((prev) =>
-              prev.map((conv) =>
-                conv.id === conversationId
-                  ? { ...conv, last_message_at: newMessage.created_at, last_message: {
-                      message_text: newMessage.message_text,
-                      sender_id: newMessage.sender_id,
-                      created_at: newMessage.created_at
-                    }}
-                  : conv
-              ).sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime())
-            );
-          }
-        }
-      )
-      .subscribe();
+      if (newMessage.sender_id !== user.id) {
+        supabase
+          .from('messages')
+          .update({ is_read: true, read_at: new Date().toISOString() })
+          .eq('id', newMessage.id);
 
-    setRealtimeChannel(channel);
-  }, [user, realtimeChannel]);
+        setConversations((prev) =>
+          prev.map((conv) =>
+            conv.id === conversationId
+              ? { ...conv, last_message_at: newMessage.created_at, last_message: {
+                  message_text: newMessage.message_text,
+                  sender_id: newMessage.sender_id,
+                  created_at: newMessage.created_at
+                }}
+              : conv
+          ).sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime())
+        );
+      }
+    });
+
+    channel.subscribe('delete_message', (message) => {
+      const payload = message.data as AblyMessage;
+      const messageId = payload.data.messageId as string;
+
+      setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+    });
+
+    setAblyChannel(channel);
+  }, [user, ablyChannel]);
 
   const unsubscribeFromConversation = useCallback(() => {
-    if (realtimeChannel) {
-      realtimeChannel.unsubscribe();
-      setRealtimeChannel(null);
+    if (ablyChannel) {
+      ablyChannel.unsubscribe();
+      setAblyChannel(null);
     }
-  }, [realtimeChannel]);
+  }, [ablyChannel]);
 
   const deleteMessage = useCallback(async (messageId: string) => {
     if (!user) return { error: 'User not authenticated' };
@@ -313,12 +319,19 @@ export const useMessaging = () => {
 
       setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
 
+      if (ablyChannel) {
+        ablyChannel.publish('delete_message', {
+          type: 'delete_message',
+          data: { messageId },
+        } as AblyMessage);
+      }
+
       return { error: null };
     } catch (error) {
       console.error('Error in deleteMessage:', error);
       return { error: 'Failed to delete message' };
     }
-  }, [user]);
+  }, [user, ablyChannel]);
 
   const deleteConversation = useCallback(async (conversationId: string) => {
     if (!user) return { error: 'User not authenticated' };
@@ -355,11 +368,11 @@ export const useMessaging = () => {
 
   useEffect(() => {
     return () => {
-      if (realtimeChannel) {
-        realtimeChannel.unsubscribe();
+      if (ablyChannel) {
+        ablyChannel.unsubscribe();
       }
     };
-  }, [realtimeChannel]);
+  }, [ablyChannel]);
 
   return {
     conversations,
