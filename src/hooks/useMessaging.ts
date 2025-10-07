@@ -47,6 +47,9 @@ export const useMessaging = () => {
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const [ablyChannel, setAblyChannel] = useState<RealtimeChannel | null>(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const [otherUserOnline, setOtherUserOnline] = useState(false);
+  const typingTimeoutRef = useState<NodeJS.Timeout | null>(null)[0];
 
   const fetchConversations = useCallback(async () => {
     if (!user) {
@@ -292,13 +295,57 @@ export const useMessaging = () => {
       setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
     });
 
+    channel.subscribe('typing_start', (message) => {
+      if (message.data.userId !== user.id) {
+        setIsTyping(true);
+        if (typingTimeoutRef) {
+          clearTimeout(typingTimeoutRef);
+        }
+      }
+    });
+
+    channel.subscribe('typing_stop', (message) => {
+      if (message.data.userId !== user.id) {
+        setIsTyping(false);
+      }
+    });
+
+    channel.presence.enter({
+      userId: user.id,
+      userName: user.email,
+    });
+
+    channel.presence.subscribe('enter', () => {
+      setOtherUserOnline(true);
+    });
+
+    channel.presence.subscribe('leave', () => {
+      setOtherUserOnline(false);
+    });
+
+    channel.presence.subscribe('update', () => {
+      setOtherUserOnline(true);
+    });
+
+    channel.presence.get((err, members) => {
+      if (!err && members) {
+        const otherUserPresent = members.some(
+          (member: any) => member.data.userId !== user.id
+        );
+        setOtherUserOnline(otherUserPresent);
+      }
+    });
+
     setAblyChannel(channel);
   }, [user, ablyChannel]);
 
   const unsubscribeFromConversation = useCallback(() => {
     if (ablyChannel) {
+      ablyChannel.presence.leave();
       ablyChannel.unsubscribe();
       setAblyChannel(null);
+      setIsTyping(false);
+      setOtherUserOnline(false);
     }
   }, [ablyChannel]);
 
@@ -374,6 +421,22 @@ export const useMessaging = () => {
     };
   }, [ablyChannel]);
 
+  const sendTypingStart = useCallback(() => {
+    if (ablyChannel) {
+      ablyChannel.publish('typing_start', {
+        userId: user?.id,
+      });
+    }
+  }, [ablyChannel, user]);
+
+  const sendTypingStop = useCallback(() => {
+    if (ablyChannel) {
+      ablyChannel.publish('typing_stop', {
+        userId: user?.id,
+      });
+    }
+  }, [ablyChannel, user]);
+
   return {
     conversations,
     activeConversation,
@@ -381,6 +444,8 @@ export const useMessaging = () => {
     messages,
     loading,
     unreadCount,
+    isTyping,
+    otherUserOnline,
     fetchConversations,
     fetchMessages,
     getOrCreateConversation,
@@ -389,5 +454,7 @@ export const useMessaging = () => {
     unsubscribeFromConversation,
     deleteMessage,
     deleteConversation,
+    sendTypingStart,
+    sendTypingStop,
   };
 };

@@ -7,12 +7,14 @@ interface ConversationListProps {
   conversations: Conversation[];
   activeConversation: Conversation | null;
   onSelectConversation: (conversation: Conversation) => void;
+  otherUserOnline?: boolean;
 }
 
 export const ConversationList: React.FC<ConversationListProps> = ({
   conversations,
   activeConversation,
   onSelectConversation,
+  otherUserOnline = false,
 }) => {
   const formatTime = (date: string) => {
     const d = new Date(date);
@@ -50,10 +52,13 @@ export const ConversationList: React.FC<ConversationListProps> = ({
               : ''
           }`}
         >
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 relative">
             <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white font-semibold">
               {(conversation.other_user?.full_name?.[0] || conversation.other_user?.email?.[0] || 'U').toUpperCase()}
             </div>
+            {activeConversation?.id === conversation.id && otherUserOnline && (
+              <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></div>
+            )}
           </div>
 
           <div className="flex-1 min-w-0">

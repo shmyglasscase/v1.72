@@ -3,6 +3,7 @@ import { Send, User, Trash2 } from 'lucide-react';
 import { Conversation, Message } from '../../hooks/useMessaging';
 import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
+import { TypingIndicator } from './TypingIndicator';
 
 interface MessageThreadProps {
   conversation: Conversation;
@@ -10,6 +11,10 @@ interface MessageThreadProps {
   onSendMessage: (text: string) => Promise<void>;
   onDeleteMessage: (messageId: string) => Promise<void>;
   sending: boolean;
+  isTyping: boolean;
+  otherUserOnline: boolean;
+  onTypingStart: () => void;
+  onTypingStop: () => void;
 }
 
 export const MessageThread: React.FC<MessageThreadProps> = ({
@@ -18,11 +23,16 @@ export const MessageThread: React.FC<MessageThreadProps> = ({
   onSendMessage,
   onDeleteMessage,
   sending,
+  isTyping,
+  otherUserOnline,
+  onTypingStart,
+  onTypingStop,
 }) => {
   const { user } = useAuth();
   const [messageText, setMessageText] = useState('');
   const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -38,6 +48,10 @@ export const MessageThread: React.FC<MessageThreadProps> = ({
 
     const text = messageText;
     setMessageText('');
+    onTypingStop();
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
     await onSendMessage(text);
   };
 
@@ -59,15 +73,20 @@ export const MessageThread: React.FC<MessageThreadProps> = ({
     <div className="flex flex-col h-full">
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white font-semibold">
-            {(conversation.other_user?.full_name?.[0] || conversation.other_user?.email?.[0] || 'U').toUpperCase()}
+          <div className="relative">
+            <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white font-semibold">
+              {(conversation.other_user?.full_name?.[0] || conversation.other_user?.email?.[0] || 'U').toUpperCase()}
+            </div>
+            {otherUserOnline && (
+              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></div>
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="font-semibold text-gray-900 dark:text-white">
               {conversation.other_user?.full_name || conversation.other_user?.email}
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              {conversation.other_user?.email}
+              {otherUserOnline ? 'Online' : conversation.other_user?.email}
             </p>
             {conversation.listing && (
               <div className="flex items-center space-x-2 mt-1">
@@ -98,13 +117,14 @@ export const MessageThread: React.FC<MessageThreadProps> = ({
             </div>
           </div>
         ) : (
-          messages.map((message) => {
-            const isOwn = message.sender_id === user?.id;
-            return (
-              <div
-                key={message.id}
-                className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group`}
-              >
+          <>
+            {messages.map((message) => {
+              const isOwn = message.sender_id === user?.id;
+              return (
+                <div
+                  key={message.id}
+                  className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group`}
+                >
                 <div className={`max-w-xs lg:max-w-md ${isOwn ? 'order-2' : 'order-1'}`}>
                   <div className="flex items-start gap-2">
                     {isOwn && (
@@ -140,8 +160,10 @@ export const MessageThread: React.FC<MessageThreadProps> = ({
                   </div>
                 </div>
               </div>
-            );
-          })
+              );
+            })}
+            {isTyping && <TypingIndicator />}
+          </>
         )}
         <div ref={messagesEndRef} />
       </div>
@@ -150,7 +172,16 @@ export const MessageThread: React.FC<MessageThreadProps> = ({
         <form onSubmit={handleSubmit} className="flex items-end space-x-2">
           <textarea
             value={messageText}
-            onChange={(e) => setMessageText(e.target.value)}
+            onChange={(e) => {
+              setMessageText(e.target.value);
+              onTypingStart();
+              if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+              }
+              typingTimeoutRef.current = setTimeout(() => {
+                onTypingStop();
+              }, 2000);
+            }}
             onKeyDown={handleKeyDown}
             placeholder="Type a message..."
             rows={1}

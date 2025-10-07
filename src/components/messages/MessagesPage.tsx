@@ -11,11 +11,15 @@ export const MessagesPage: React.FC = () => {
     setActiveConversation,
     messages,
     loading,
+    isTyping,
+    otherUserOnline,
     fetchMessages,
     sendMessage,
     subscribeToConversation,
     unsubscribeFromConversation,
     deleteMessage,
+    sendTypingStart,
+    sendTypingStop,
   } = useMessaging();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -142,6 +146,7 @@ export const MessagesPage: React.FC = () => {
               conversations={filteredConversations}
               activeConversation={activeConversation}
               onSelectConversation={setActiveConversation}
+              otherUserOnline={otherUserOnline}
             />
           </div>
 
@@ -155,6 +160,10 @@ export const MessagesPage: React.FC = () => {
                 onSendMessage={handleSendMessage}
                 onDeleteMessage={handleDeleteMessage}
                 sending={sending}
+                isTyping={isTyping}
+                otherUserOnline={otherUserOnline}
+                onTypingStart={sendTypingStart}
+                onTypingStop={sendTypingStop}
               />
             ) : (
               <div className="flex-1 flex items-center justify-center">
