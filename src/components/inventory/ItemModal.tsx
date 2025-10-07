@@ -94,7 +94,6 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose, onUpgradeRe
     description: item?.description || '',
     condition: item?.condition || '',
     purchase_date: item?.purchase_date || '',
-    quantity: '',
   });
 
   // Initialize form data when item changes
