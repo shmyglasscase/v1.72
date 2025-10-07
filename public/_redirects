@@ -1,0 +1,10 @@
+# Ensure robots.txt and sitemap.xml are accessible
+/robots.txt   /robots.txt   200
+/sitemap.xml  /sitemap.xml  200
+
+# PWA files
+/manifest.json /manifest.json 200
+/sw.js /sw.js 200
+
+# SPA fallback - redirect all routes to index.html
+/*    /index.html   200
