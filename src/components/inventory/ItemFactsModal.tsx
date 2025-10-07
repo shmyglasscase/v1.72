@@ -292,25 +292,27 @@ export const ItemFactsModal: React.FC<ItemFactsModalProps> = ({
                 </button>
               )}
 
-              {/* Marketplace Listing Button */}
-              <button
+              {/* FEATURE DISABLED: List on Marketplace */}
+              {/* This feature is temporarily disabled until further notice */}
+              {/* <button
                 onClick={() => setMarketplaceModalOpen(true)}
                 disabled={isProcessing}
                 className="flex flex-col items-center p-4 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-xl transition-colors disabled:opacity-50"
               >
                 <ShoppingBag className="h-5 w-5 mb-2" />
                 <span className="text-sm font-medium">List on Marketplace</span>
-              </button>
+              </button> */}
 
-              {/* eBay Listing Button */}
-              <button
+              {/* FEATURE DISABLED: List on eBay */}
+              {/* This feature is temporarily disabled until further notice */}
+              {/* <button
                 onClick={() => setEbayModalOpen(true)}
                 disabled={isProcessing}
                 className="flex flex-col items-center p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-xl transition-colors disabled:opacity-50"
               >
                 <ExternalLink className="h-5 w-5 mb-2" />
                 <span className="text-sm font-medium">List on eBay</span>
-              </button>
+              </button> */}
               {/* Edit Button */}
               {handleEdit && (
                 <button
