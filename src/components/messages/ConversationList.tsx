@@ -3,7 +3,6 @@ import { User, Package } from 'lucide-react';
 import { Conversation } from '../../hooks/useMessaging';
 import { format, isToday, isYesterday } from 'date-fns';
 import { OptimizedImage } from '../inventory/OptimizedImage';
-import { extractNameFromDescription } from '../../utils/nameExtractor';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface ConversationListProps {
@@ -47,10 +46,15 @@ export const ConversationList: React.FC<ConversationListProps> = ({
   return (
     <div className="flex-1 overflow-y-auto">
       {conversations.map((conversation) => {
-        const sellerName = conversation.listing?.description
-          ? extractNameFromDescription(conversation.listing.description)
-          : null;
-        const displaySellerName = sellerName || conversation.listing?.profiles?.full_name; //|| 'Seller';
+        const displaySellerName = conversation.listing?.users_name || (conversation.listing?.user_profile?.full_name ? (() => {
+          const nameParts = conversation.listing.user_profile.full_name.trim().split(/\s+/);
+          if (nameParts.length >= 2) {
+            const firstName = nameParts[0];
+            const lastInitial = nameParts[nameParts.length - 1][0];
+            return `${firstName} ${lastInitial}.`;
+          }
+          return conversation.listing.user_profile.full_name;
+        })() : conversation.listing?.user_profile?.email || 'Seller');
         const isSentByMe = conversation.last_message?.sender_id === user?.id;
         const senderLabel = isSentByMe ? 'You' : (conversation.other_user?.full_name?.split(' ')[0] || 'They');
 
