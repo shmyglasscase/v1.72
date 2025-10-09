@@ -164,7 +164,7 @@ export const ListingDetailModal: React.FC<ListingDetailModalProps> = ({
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Listed by</p>
                       <p className="text-gray-900 dark:text-white font-medium">
-                        {listing.user_profile?.full_name ? (() => {
+                        {listing.users_name || (listing.user_profile?.full_name ? (() => {
                           const nameParts = listing.user_profile.full_name.trim().split(/\s+/);
                           if (nameParts.length >= 2) {
                             const firstName = nameParts[0];
@@ -172,7 +172,7 @@ export const ListingDetailModal: React.FC<ListingDetailModalProps> = ({
                             return `${firstName} ${lastInitial}.`;
                           }
                           return listing.user_profile.full_name;
-                        })() : listing.user_profile?.email}
+                        })() : listing.user_profile?.email)}
                       </p>
                     </div>
                   </div>
