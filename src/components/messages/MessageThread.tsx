@@ -107,7 +107,7 @@ export const MessageThread: React.FC<MessageThreadProps> = ({
                   )}
                   <div className="flex-1 text-left min-w-0">
                     <p className="text-xs text-green-600 dark:text-green-400 truncate font-medium">
-                      About: {conversation.listing.title}
+                      {conversation.listing.title}
                     </p>
                     {conversation.listing.user_profile && (
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
