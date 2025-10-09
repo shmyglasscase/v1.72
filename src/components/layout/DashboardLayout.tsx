@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Amphora as amphora, Package, Settings, LogOut, Menu, X, Crown, ChartBar as BarChart3, Heart, Home as Home, Plus, Search, Bell, Circle as HelpCircle, Sparkles, ShoppingBag, MessageCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useStripe } from '../../hooks/useStripe';
 import { useMessaging } from '../../hooks/useMessaging';
 import { getProductByPriceId } from '../../stripe-config';
 import { HelpModal } from '../help/HelpModal';
+import { supabase } from '../../lib/supabase';
+import { getDisplayInitials } from '../../utils/nameExtractor';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -23,8 +25,50 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [subscription, setSubscription] = useState<any>(null);
   const [helpModalOpen, setHelpModalOpen] = useState(false);
+  const [userInitials, setUserInitials] = useState<string>('U');
 
   const subscribedProduct = subscription?.price_id ? getProductByPriceId(subscription.price_id) : null;
+
+  // Fetch user's first item to extract name from description
+  useEffect(() => {
+    const fetchUserInitials = async () => {
+      if (!user) {
+        setUserInitials('U');
+        return;
+      }
+
+      try {
+        // Fetch the user's first inventory item
+        const { data: items, error } = await supabase
+          .from('inventory_items')
+          .select('description')
+          .eq('user_id', user.id)
+          .or('deleted.is.null,deleted.eq.0')
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (error) {
+          console.error('Error fetching item for initials:', error);
+          setUserInitials(getDisplayInitials(null, profile?.full_name || 'U'));
+          return;
+        }
+
+        if (items && items.length > 0 && items[0].description) {
+          // Extract initials from the item description
+          const initials = getDisplayInitials(items[0].description, profile?.full_name || 'U');
+          setUserInitials(initials);
+        } else {
+          // Fallback to profile name
+          setUserInitials(getDisplayInitials(null, profile?.full_name || 'U'));
+        }
+      } catch (error) {
+        console.error('Error in fetchUserInitials:', error);
+        setUserInitials(getDisplayInitials(null, profile?.full_name || 'U'));
+      }
+    };
+
+    fetchUserInitials();
+  }, [user, profile?.full_name]);
 
   const navigation = [
     { name: 'Home', id: 'dashboard', icon: Home },
@@ -109,7 +153,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 >
                   <div className="h-8 w-8 bg-green-500 rounded-full flex items-center justify-center">
                     <span className="text-white font-semibold text-sm">
-                      {(profile?.full_name || 'U')[0].toUpperCase()}
+                      {userInitials}
                     </span>
                   </div>
                 </button>
@@ -142,7 +186,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               <div className="flex items-center space-x-4 mb-8 p-4 bg-gray-50 dark:bg-gray-700 rounded-2xl">
                 <div className="h-12 w-12 bg-red-500 rounded-full flex items-center justify-center">
                   <span className="text-white font-bold text-lg">
-                    {(profile?.full_name || 'U')[0].toUpperCase()}
+                    {userInitials}
                   </span>
                 </div>
                 <div>

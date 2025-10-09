@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, CreditCard, Bell, Shield, Download, Trash2, Upload, FileText, Smartphone, Plus, CreditCard as Edit, LogOut, Monitor, Circle as HelpCircle, Mail, Info, CircleAlert as AlertCircle, CircleCheck as CheckCircle, X, Share } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useInventory } from '../../hooks/useInventory';
 import { useStripe } from '../../hooks/useStripe';
 import { getProductByPriceId } from '../../stripe-config';
 import { usePWA } from '../../hooks/usePWA';
+import { supabase } from '../../lib/supabase';
+import { getDisplayInitials } from '../../utils/nameExtractor';
 import { 
   getCustomCategories, 
   saveCustomCategories, 
@@ -58,10 +60,52 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onPageChange }) => {
   const [importing, setImporting] = useState(false);
   const [importResults, setImportResults] = useState<{ success: number; errors: string[] } | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [userInitials, setUserInitials] = useState<string>('U');
 
   // Load deleted defaults
   const [deletedDefaultCategories, setDeletedDefaultCategories] = useState<string[]>([]);
   const [deletedDefaultConditions, setDeletedDefaultConditions] = useState<string[]>([]);
+
+  // Fetch user's first item to extract name from description
+  useEffect(() => {
+    const fetchUserInitials = async () => {
+      if (!user) {
+        setUserInitials('U');
+        return;
+      }
+
+      try {
+        // Fetch the user's first inventory item
+        const { data: items, error } = await supabase
+          .from('inventory_items')
+          .select('description')
+          .eq('user_id', user.id)
+          .or('deleted.is.null,deleted.eq.0')
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (error) {
+          console.error('Error fetching item for initials:', error);
+          setUserInitials(getDisplayInitials(null, profile?.full_name || 'U'));
+          return;
+        }
+
+        if (items && items.length > 0 && items[0].description) {
+          // Extract initials from the item description
+          const initials = getDisplayInitials(items[0].description, profile?.full_name || 'U');
+          setUserInitials(initials);
+        } else {
+          // Fallback to profile name
+          setUserInitials(getDisplayInitials(null, profile?.full_name || 'U'));
+        }
+      } catch (error) {
+        console.error('Error in fetchUserInitials:', error);
+        setUserInitials(getDisplayInitials(null, profile?.full_name || 'U'));
+      }
+    };
+
+    fetchUserInitials();
+  }, [user, profile?.full_name]);
 
   // Load custom categories and conditions on component mount
   // Load custom categories and conditions on component mount
@@ -462,7 +506,7 @@ React.useEffect(() => {
                     <div className="flex items-center space-x-4">
                       <div className="h-16 w-16 bg-green-600 rounded-full flex items-center justify-center">
                         <span className="text-white font-bold text-xl">
-                          {(profile?.full_name || 'U')[0].toUpperCase()}
+                          {userInitials}
                         </span>
                       </div>
                       <div>
