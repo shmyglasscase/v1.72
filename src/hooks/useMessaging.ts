@@ -152,8 +152,12 @@ export const useMessaging = () => {
     }
   }, [user, fetchConversations]);
 
-  const getOrCreateConversation = useCallback(async (otherUserId: string, listingId?: string) => {
+  const getOrCreateConversation = useCallback(async (otherUserId: string, listingId: string) => {
     if (!user) return null;
+    if (!listingId) {
+      console.error('listingId is required for creating conversations');
+      return null;
+    }
 
     try {
       const [smallerId, largerId] = [user.id, otherUserId].sort();
@@ -163,6 +167,7 @@ export const useMessaging = () => {
         .select('*')
         .eq('user1_id', smallerId)
         .eq('user2_id', largerId)
+        .eq('listing_id', listingId)
         .maybeSingle();
 
       if (fetchError && fetchError.code !== 'PGRST116') {
@@ -179,7 +184,7 @@ export const useMessaging = () => {
         .insert({
           user1_id: smallerId,
           user2_id: largerId,
-          listing_id: listingId || null,
+          listing_id: listingId,
         })
         .select()
         .single();

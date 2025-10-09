@@ -96,11 +96,12 @@ CREATE TABLE IF NOT EXISTS conversations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user1_id uuid REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
   user2_id uuid REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
-  listing_id uuid REFERENCES marketplace_listings(id) ON DELETE SET NULL,
+  listing_id uuid REFERENCES marketplace_listings(id) ON DELETE CASCADE NOT NULL,
   last_message_at timestamptz DEFAULT now(),
   created_at timestamptz DEFAULT now(),
   CONSTRAINT different_users CHECK (user1_id != user2_id),
-  CONSTRAINT ordered_users CHECK (user1_id < user2_id)
+  CONSTRAINT ordered_users CHECK (user1_id < user2_id),
+  CONSTRAINT unique_conversation_per_listing UNIQUE (user1_id, user2_id, listing_id)
 );
 
 -- Create messages table
@@ -255,6 +256,7 @@ CREATE INDEX IF NOT EXISTS idx_marketplace_listings_status ON marketplace_listin
 CREATE INDEX IF NOT EXISTS idx_marketplace_listings_created_at ON marketplace_listings(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_conversations_user1 ON conversations(user1_id);
 CREATE INDEX IF NOT EXISTS idx_conversations_user2 ON conversations(user2_id);
+CREATE INDEX IF NOT EXISTS idx_conversations_listing_id ON conversations(listing_id);
 CREATE INDEX IF NOT EXISTS idx_conversations_last_message ON conversations(last_message_at DESC);
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at DESC);
