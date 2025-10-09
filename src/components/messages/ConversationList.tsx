@@ -50,7 +50,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
         const sellerName = conversation.listing?.description
           ? extractNameFromDescription(conversation.listing.description)
           : null;
-        const displaySellerName = sellerName || conversation.listing?.user_profile?.full_name ; //|| 'Seller';
+        const displaySellerName = sellerName || conversation.listing.full_name ; //|| 'Seller';
         const isSentByMe = conversation.last_message?.sender_id === user?.id;
         const senderLabel = isSentByMe ? 'You' : (conversation.other_user?.full_name?.split(' ')[0] || 'They');
 
