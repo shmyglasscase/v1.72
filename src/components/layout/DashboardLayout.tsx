@@ -92,14 +92,14 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
             {/* Right side - Actions and Profile */}
             <div className="flex items-center space-x-3">
-              {/* Help Button */}
-              <button
+              {/* Help Button - HIDDEN - To restore: uncomment lines below */}
+              {/* <button
                 onClick={() => setHelpModalOpen(true)}
                 className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
                 title="Help & Documentation"
               >
                 <HelpCircle className="h-5 w-5" />
-              </button>
+              </button> */}
 
               {/* Profile */}
               <div className="relative">
