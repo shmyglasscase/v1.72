@@ -281,7 +281,7 @@ export const MarketplacePage: React.FC = () => {
                     <div className="flex items-center text-gray-500 dark:text-gray-400">
                       <User className="h-4 w-4 mr-1" />
                       <span className="text-xs">
-                        {listing.users_name || listing.user_profile?.full_name || listing.user_profile?.email.split('@')[0]}
+                        {listing.user_profile?.full_name || listing.user_profile?.email.split('@')[0]}
                       </span>
                     </div>
                   </div>

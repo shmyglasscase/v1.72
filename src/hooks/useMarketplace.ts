@@ -19,7 +19,6 @@ export interface MarketplaceListing {
   view_count: number;
   created_at: string;
   updated_at: string;
-  users_name: string | null;
   user_profile?: {
     full_name: string | null;
     email: string;
@@ -89,22 +88,11 @@ export const useMarketplace = () => {
     if (!user) return { error: 'User not authenticated' };
 
     try {
-      // Get user's profile to extract first name
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', user.id)
-        .single();
-
-      // Extract first name from full_name
-      const firstName = profileData?.full_name?.split(' ')[0] || null;
-
       const { data, error } = await supabase
         .from('marketplace_listings')
         .insert({
           ...listing,
           user_id: user.id,
-          users_name: firstName,
         })
         .select(`
           *,
