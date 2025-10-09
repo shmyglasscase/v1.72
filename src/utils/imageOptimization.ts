@@ -48,7 +48,7 @@ export function getResponsiveImageSrcSet(
 ): string {
   if (!url) return '';
 
-  const widths = [320, 640, 960, 1280, 1920];
+  const widths = [320, 480, 640, 768];
   const srcSet = widths.map(width => {
     const optimizedUrl = getOptimizedImageUrl(url, { ...options, width });
     return `${optimizedUrl} ${width}w`;
@@ -70,8 +70,8 @@ export function generateBlurDataURL(url: string | null): string | null {
   if (!url) return null;
 
   return getOptimizedImageUrl(url, {
-    width: 20,
-    height: 20,
-    quality: 10
+    width: 10,
+    height: 10,
+    quality: 5
   });
 }

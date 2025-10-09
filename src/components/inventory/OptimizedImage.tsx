@@ -25,9 +25,9 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   height
 }) => {
   // Optimize image URL with transformations
-  const optimizedSrc = getOptimizedImageUrl(src, { width, height, quality: 85, format: 'webp' });
+  const optimizedSrc = getOptimizedImageUrl(src, { width, height, quality: 80, format: 'webp' });
   const blurDataURL = generateBlurDataURL(src);
-  const srcSet = src ? getResponsiveImageSrcSet(src, { quality: 85, format: 'webp' }) : '';
+  const srcSet = src ? getResponsiveImageSrcSet(src, { quality: 75, format: 'webp' }) : '';
 
   const [isLoaded, setIsLoaded] = useState(() => {
     // Check if image is already cached
@@ -52,7 +52,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
         }
       },
       {
-        rootMargin: '200px',
+        rootMargin: '50px',
         threshold: 0.01
       }
     );
@@ -127,7 +127,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
           ref={imgRef}
           src={optimizedSrc}
           srcSet={srcSet || undefined}
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
           alt={alt}
           onLoad={handleImageLoad}
           onError={handleImageError}
