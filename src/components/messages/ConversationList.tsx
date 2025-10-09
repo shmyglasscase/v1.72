@@ -131,7 +131,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
               )}
 
               {/* Unread Badge */}
-              {conversation.unread_count && conversation.unread_count > 0 && (
+              {conversation.unread_count != null && conversation.unread_count > 0 && (
                 <div className="mt-1.5">
                   <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-500 text-white">
                     {conversation.unread_count} new
