@@ -20,6 +20,23 @@ export interface Conversation {
     id: string;
     title: string;
     photo_url: string | null;
+    user_id: string;
+    description: string;
+    category: string;
+    subcategory: string | null;
+    condition: string;
+    listing_type: 'sale' | 'trade' | 'both';
+    asking_price: number | null;
+    trade_preferences: string | null;
+    listing_status: string;
+    view_count: number;
+    created_at: string;
+    updated_at: string;
+    users_name: string | null;
+    user_profile?: {
+      full_name: string | null;
+      email: string;
+    };
   };
   last_message?: {
     message_text: string;
@@ -66,7 +83,25 @@ export const useMessaging = () => {
           *,
           user1:profiles!conversations_user1_id_fkey(id, full_name, email),
           user2:profiles!conversations_user2_id_fkey(id, full_name, email),
-          listing:marketplace_listings(id, title, photo_url)
+          listing:marketplace_listings(
+            id,
+            title,
+            photo_url,
+            user_id,
+            description,
+            category,
+            subcategory,
+            condition,
+            listing_type,
+            asking_price,
+            trade_preferences,
+            listing_status,
+            view_count,
+            created_at,
+            updated_at,
+            users_name,
+            user_profile:profiles!marketplace_listings_user_id_fkey(full_name, email)
+          )
         `)
         .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
         .order('last_message_at', { ascending: false });

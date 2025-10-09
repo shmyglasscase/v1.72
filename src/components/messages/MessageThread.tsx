@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, User, Trash2 } from 'lucide-react';
+import { Send, User, Trash2, ExternalLink } from 'lucide-react';
 import { Conversation, Message } from '../../hooks/useMessaging';
 import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
 import { TypingIndicator } from './TypingIndicator';
+import { ListingDetailModal } from '../marketplace/ListingDetailModal';
+import { MarketplaceListing } from '../../hooks/useMarketplace';
 
 interface MessageThreadProps {
   conversation: Conversation;
@@ -31,6 +33,7 @@ export const MessageThread: React.FC<MessageThreadProps> = ({
   const { user } = useAuth();
   const [messageText, setMessageText] = useState('');
   const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
+  const [showListingModal, setShowListingModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -70,6 +73,7 @@ export const MessageThread: React.FC<MessageThreadProps> = ({
   };
 
   return (
+    <>
     <div className="flex flex-col h-full">
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
         <div className="flex items-center space-x-3">
@@ -89,17 +93,30 @@ export const MessageThread: React.FC<MessageThreadProps> = ({
               {otherUserOnline ? 'Online' : conversation.other_user?.email}
             </p>
             {conversation.listing && (
-              <div className="flex items-center space-x-2 mt-1">
-                {conversation.listing.photo_url && (
-                  <img
-                    src={conversation.listing.photo_url}
-                    alt={conversation.listing.title}
-                    className="w-8 h-8 object-cover rounded"
-                  />
-                )}
-                <p className="text-xs text-green-600 dark:text-green-400 truncate">
-                  About: {conversation.listing.title}
-                </p>
+              <div className="mt-2">
+                <button
+                  onClick={() => setShowListingModal(true)}
+                  className="flex items-center space-x-2 group hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg p-2 -ml-2 transition-colors"
+                >
+                  {conversation.listing.photo_url && (
+                    <img
+                      src={conversation.listing.photo_url}
+                      alt={conversation.listing.title}
+                      className="w-10 h-10 object-cover rounded border border-gray-200 dark:border-gray-600"
+                    />
+                  )}
+                  <div className="flex-1 text-left min-w-0">
+                    <p className="text-xs text-green-600 dark:text-green-400 truncate font-medium">
+                      About: {conversation.listing.title}
+                    </p>
+                    {conversation.listing.user_profile && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        Listed by {conversation.listing.users_name || conversation.listing.user_profile.full_name || conversation.listing.user_profile.email}
+                      </p>
+                    )}
+                  </div>
+                  <ExternalLink className="h-4 w-4 text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors flex-shrink-0" />
+                </button>
               </div>
             )}
           </div>
@@ -201,5 +218,14 @@ export const MessageThread: React.FC<MessageThreadProps> = ({
         </p>
       </div>
     </div>
+
+    {showListingModal && conversation.listing && (
+      <ListingDetailModal
+        listing={conversation.listing as unknown as MarketplaceListing}
+        onClose={() => setShowListingModal(false)}
+        onContact={() => {}}
+      />
+    )}
+    </>
   );
 };
