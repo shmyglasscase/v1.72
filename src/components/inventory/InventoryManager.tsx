@@ -480,7 +480,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
           </div>
 
           {/* Filter Pills */}
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-wrap items-center gap-3">
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
