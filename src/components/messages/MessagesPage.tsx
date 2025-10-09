@@ -3,6 +3,7 @@ import { Search, MessageCircle, ArrowLeft } from 'lucide-react';
 import { useMessaging, type Conversation } from '../../hooks/useMessaging';
 import { ConversationList } from './ConversationList';
 import { MessageThread } from './MessageThread';
+import { ConversationDeleteModal } from './ConversationDeleteModal';
 
 export const MessagesPage: React.FC = () => {
   const {
@@ -18,6 +19,7 @@ export const MessagesPage: React.FC = () => {
     subscribeToConversation,
     unsubscribeFromConversation,
     deleteMessage,
+    deleteConversation,
     sendTypingStart,
     sendTypingStop,
   } = useMessaging();
@@ -25,6 +27,9 @@ export const MessagesPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sending, setSending] = useState(false);
   const [hasAutoSelected, setHasAutoSelected] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [conversationToDelete, setConversationToDelete] = useState<{ id: string; sellerName: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const filteredConversations = conversations.filter((conv) => {
     if (!searchTerm) return true;
@@ -94,6 +99,36 @@ export const MessagesPage: React.FC = () => {
     unsubscribeFromConversation();
   };
 
+  const handleDeleteConversation = (conversationId: string, sellerName: string) => {
+    setConversationToDelete({ id: conversationId, sellerName });
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDeleteConversation = async () => {
+    if (!conversationToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const result = await deleteConversation(conversationToDelete.id);
+      if (result.error) {
+        alert(`Failed to delete conversation: ${result.error}`);
+      } else {
+        setDeleteModalOpen(false);
+        setConversationToDelete(null);
+      }
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+      alert('Failed to delete conversation');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const cancelDeleteConversation = () => {
+    setDeleteModalOpen(false);
+    setConversationToDelete(null);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -146,6 +181,7 @@ export const MessagesPage: React.FC = () => {
               conversations={filteredConversations}
               activeConversation={activeConversation}
               onSelectConversation={setActiveConversation}
+              onDeleteConversation={handleDeleteConversation}
               otherUserOnline={otherUserOnline}
             />
           </div>
@@ -180,6 +216,14 @@ export const MessagesPage: React.FC = () => {
             )}
           </div>
         </div>
+
+        <ConversationDeleteModal
+          isOpen={deleteModalOpen}
+          sellerName={conversationToDelete?.sellerName || ''}
+          onConfirm={confirmDeleteConversation}
+          onCancel={cancelDeleteConversation}
+          isDeleting={isDeleting}
+        />
       </div>
     </div>
   );

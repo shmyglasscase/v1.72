@@ -1,5 +1,5 @@
-import React from 'react';
-import { User, Package } from 'lucide-react';
+import React, { useState } from 'react';
+import { User, Package, X } from 'lucide-react';
 import { Conversation } from '../../hooks/useMessaging';
 import { format, isToday, isYesterday } from 'date-fns';
 import { OptimizedImage } from '../inventory/OptimizedImage';
@@ -9,6 +9,7 @@ interface ConversationListProps {
   conversations: Conversation[];
   activeConversation: Conversation | null;
   onSelectConversation: (conversation: Conversation) => void;
+  onDeleteConversation: (conversationId: string, sellerName: string) => void;
   otherUserOnline?: boolean;
 }
 
@@ -16,9 +17,12 @@ export const ConversationList: React.FC<ConversationListProps> = ({
   conversations,
   activeConversation,
   onSelectConversation,
+  onDeleteConversation,
   otherUserOnline = false,
 }) => {
   const { user } = useAuth();
+  const [hoveredConversation, setHoveredConversation] = useState<string | null>(null);
+
   const formatTime = (date: string) => {
     const d = new Date(date);
     if (isToday(d)) {
@@ -58,16 +62,29 @@ export const ConversationList: React.FC<ConversationListProps> = ({
         const isSentByMe = conversation.last_message?.sender_id === user?.id;
         const senderLabel = isSentByMe ? 'You' : (conversation.other_user?.full_name?.split(' ')[0] || 'They');
 
+        const handleDelete = (e: React.MouseEvent) => {
+          e.stopPropagation();
+          onDeleteConversation(conversation.id, displaySellerName);
+        };
+
         return (
-          <button
+          <div
             key={conversation.id}
-            onClick={() => onSelectConversation(conversation)}
-            className={`w-full px-3 py-3 flex items-start space-x-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 ${
-              activeConversation?.id === conversation.id
-                ? 'bg-green-50 dark:bg-green-900/20'
-                : ''
-            }`}
+            className="relative overflow-hidden border-b border-gray-100 dark:border-gray-700"
+            onMouseEnter={() => setHoveredConversation(conversation.id)}
+            onMouseLeave={() => setHoveredConversation(null)}
           >
+            <button
+              onClick={() => onSelectConversation(conversation)}
+              className={`w-full px-3 py-3 flex items-start space-x-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 ${
+                activeConversation?.id === conversation.id
+                  ? 'bg-green-50 dark:bg-green-900/20'
+                  : ''
+              } ${hoveredConversation === conversation.id ? 'pr-[20%]' : ''}`}
+              style={{
+                transition: 'padding-right 0.2s ease-in-out'
+              }}
+            >
             {/* Item Image */}
             {conversation.listing?.photo_url ? (
               <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 relative">
@@ -144,6 +161,21 @@ export const ConversationList: React.FC<ConversationListProps> = ({
               )}
             </div>
           </button>
+
+          <div
+            className={`absolute right-0 top-0 bottom-0 w-[20%] bg-red-600 flex items-center justify-center transition-transform duration-200 ease-in-out ${
+              hoveredConversation === conversation.id ? 'translate-x-0' : 'translate-x-full'
+            }`}
+          >
+            <button
+              onClick={handleDelete}
+              className="w-full h-full flex items-center justify-center hover:bg-red-700 transition-colors"
+              aria-label="Delete conversation"
+            >
+              <X className="h-6 w-6 text-white" />
+            </button>
+          </div>
+        </div>
         );
       })}
     </div>
