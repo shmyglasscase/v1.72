@@ -83,9 +83,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                     <item.icon className="h-4 w-4 mr-2" />
                     {item.name}
                     {item.badge && item.badge > 0 && (
-                      <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-500 text-white">
-                        {item.badge}
-                      </span>
+                      <span className="ml-2 h-2 w-2 rounded-full bg-green-500"></span>
                     )}
                   </button>
                 ))}
