@@ -30,7 +30,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     { name: 'Home', id: 'dashboard', icon: Home },
     { name: 'Collection', id: 'inventory', icon: Package },
     { name: 'The Exchange', id: 'marketplace', icon: ShoppingBag },
-    { name: 'Messages', id: 'messages', icon: MessageCircle, badge: unreadCount },
+    { name: 'Messages', id: 'messages', icon: MessageCircle },
     { name: 'AI Recognition', id: 'recognition', icon: Sparkles, hidden: true },
     { name: 'Wishlist', id: 'wishlist', icon: Heart },
     { name: 'Settings', id: 'settings', icon: Settings },
@@ -82,7 +82,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                   >
                     <item.icon className="h-4 w-4 mr-2" />
                     {item.name}
-                    {item.badge && item.badge > 0 && (
+                    {item.id === 'messages' && unreadCount > 0 && (
                       <span className="ml-2 h-2 w-2 rounded-full bg-green-500"></span>
                     )}
                   </button>
@@ -172,6 +172,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                   >
                     <item.icon className="h-5 w-5 mr-3" />
                     {item.name}
+                    {item.id === 'messages' && unreadCount > 0 && (
+                      <span className="ml-2 h-2 w-2 rounded-full bg-green-500"></span>
+                    )}
                   </button>
                 ))}
               </nav>
