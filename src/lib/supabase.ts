@@ -1,19 +1,61 @@
 import { createClient } from '@supabase/supabase-js';
+import Constants from 'expo-constants';
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl;
+const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey;
 
-// Debug logging for environment variables
 console.log('=== SUPABASE CONFIG DEBUG ===');
-console.log('VITE_SUPABASE_URL:', supabaseUrl);
-console.log('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : 'undefined');
+console.log('Platform:', Platform.OS);
+console.log('SUPABASE_URL:', supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : 'undefined');
+console.log('SUPABASE_ANON_KEY:', supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : 'undefined');
 console.log('==============================');
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const ExpoSecureStoreAdapter = {
+  getItem: async (key: string) => {
+    if (Platform.OS === 'web') {
+      if (typeof localStorage === 'undefined') {
+        return null;
+      }
+      return localStorage.getItem(key);
+    }
+    return SecureStore.getItemAsync(key);
+  },
+  setItem: async (key: string, value: string) => {
+    if (Platform.OS === 'web') {
+      if (typeof localStorage === 'undefined') {
+        return;
+      }
+      localStorage.setItem(key, value);
+      return;
+    }
+    SecureStore.setItemAsync(key, value);
+  },
+  removeItem: async (key: string) => {
+    if (Platform.OS === 'web') {
+      if (typeof localStorage === 'undefined') {
+        return;
+      }
+      localStorage.removeItem(key);
+      return;
+    }
+    SecureStore.deleteItemAsync(key);
+  },
+};
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: ExpoSecureStoreAdapter,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
+  },
+});
 
 export type Database = {
   public: {

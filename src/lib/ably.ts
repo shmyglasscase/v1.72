@@ -1,6 +1,7 @@
 import * as Ably from 'ably';
+import Constants from 'expo-constants';
 
-const ablyApiKey = import.meta.env.VITE_ABLY_API_KEY;
+const ablyApiKey = Constants.expoConfig?.extra?.ablyApiKey;
 
 if (!ablyApiKey) {
   console.warn('Missing Ably API key. Real-time messaging features will be disabled.');
