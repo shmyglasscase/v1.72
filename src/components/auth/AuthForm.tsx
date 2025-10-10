@@ -1,9 +1,20 @@
 import React, { useState } from 'react';
-import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+  Linking,
+} from 'react-native';
+import { Mail, Lock, User, Eye, EyeOff } from 'react-native-vector-icons/Feather';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { POLICY_CONFIG } from '../../config/policyConfig';
-import type { AuthError } from '@supabase/supabase-js';
-import { useNavigate } from 'react-router-dom';
 
 interface AuthFormProps {
   mode: 'signin' | 'signup' | 'reset';
@@ -12,7 +23,7 @@ interface AuthFormProps {
 
 export const AuthForm: React.FC<AuthFormProps> = ({ mode, onModeChange }) => {
   const { signIn, signUp, resetPassword } = useAuth();
-  const navigate = useNavigate();
+  const { isDark } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -22,46 +33,25 @@ export const AuthForm: React.FC<AuthFormProps> = ({ mode, onModeChange }) => {
   const [message, setMessage] = useState('');
   const [agreedToPolicies, setAgreedToPolicies] = useState(false);
 
-  // Update page title based on mode
-  React.useEffect(() => {
-    const titles = {
-      signin: 'Sign In - MyGlassCase',
-      signup: 'Create Account - MyGlassCase', 
-      reset: 'Reset Password - MyGlassCase'
-    };
-    document.title = titles[mode];
-  }, [mode]);
-
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setError(null);
     setMessage('');
     setLoading(true);
 
-    // Check policy agreement for signup
     if (mode === 'signup' && !agreedToPolicies) {
       setError('You must agree to the Terms and Conditions and Privacy Policy to create an account.');
       setLoading(false);
       return;
     }
 
-    // Debug email input - check for invisible characters
     console.log('=== EMAIL DEBUG START ===');
     console.log('Raw email value:', email);
-    console.log('Email JSON stringify:', JSON.stringify(email));
     console.log('Email length:', email.length);
-    console.log('Email char codes:', Array.from(email).map(char => char.charCodeAt(0)));
     console.log('Email trimmed:', email.trim());
-    console.log('Email trimmed length:', email.trim().length);
-    console.log('Email toLowerCase:', email.toLowerCase());
     console.log('=== EMAIL DEBUG END ===');
 
-    // Normalize email - trim whitespace and convert to lowercase
     const normalizedEmail = email.trim().toLowerCase();
     console.log('Normalized email:', normalizedEmail);
-    console.log('Original vs normalized match:', email === normalizedEmail);
-
     console.log(`Starting ${mode} process for email:`, email);
 
     try {
@@ -93,22 +83,18 @@ export const AuthForm: React.FC<AuthFormProps> = ({ mode, onModeChange }) => {
         throw result.error;
       }
 
-      // Handle successful sign-up
       if (mode === 'signup' && result?.data?.user) {
         console.log('Sign-up successful, user created:', result.data.user.id);
         if (result.data.user.email_confirmed_at) {
-          // User is automatically confirmed, App component will redirect to subscription plans
           setMessage('Account created successfully! Please select your subscription plan.');
         } else {
-          // Normal case: must confirm email before signing in
           setMessage('Account created! Please check your email to confirm your account before signing in.');
         }
       }
 
     } catch (error: any) {
       console.error('Authentication error:', error);
-      
-      // Handle specific Supabase auth errors
+
       if (error?.message) {
         switch (error.message) {
           case 'Invalid login credentials':
@@ -136,7 +122,6 @@ export const AuthForm: React.FC<AuthFormProps> = ({ mode, onModeChange }) => {
             setError('Please enter a valid email address.');
             break;
           default:
-            // For password reset, show a generic message to prevent user enumeration
             if (mode === 'reset') {
               setError('If an account with that email exists, you will receive a password reset link. Please check your inbox and spam folder.');
             } else {
@@ -151,224 +136,410 @@ export const AuthForm: React.FC<AuthFormProps> = ({ mode, onModeChange }) => {
     }
   };
 
+  const openURL = (url: string) => {
+    Linking.openURL(url).catch(err => console.error('Failed to open URL:', err));
+  };
+
+  const styles = createStyles(isDark);
+  const isButtonDisabled = loading || !email || (mode !== 'reset' && !password) || (mode === 'signup' && (!fullName || !agreedToPolicies));
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.formContainer}>
+          <View style={styles.header}>
+            <Text style={styles.title}>
               {mode === 'signin' && 'Welcome Back'}
               {mode === 'signup' && 'Create Account'}
               {mode === 'reset' && 'Reset Password'}
-            </h2>
-            <p className="text-gray-600 dark:text-gray-300 mt-2">
+            </Text>
+            <Text style={styles.subtitle}>
               {mode === 'signin' && 'Sign in to access your collection'}
               {mode === 'signup' && 'Join thousands of collectors'}
               {mode === 'reset' && 'Enter your email to reset your password'}
-            </p>
-          </div>
+            </Text>
+          </View>
 
           {mode === 'signup' && (
-            <div>
-              <label className="flex items-start space-x-3">
-                <input
-                  type="checkbox"
-                  checked={agreedToPolicies}
-                  onChange={(e) => setAgreedToPolicies(e.target.checked)}
-                  required
-                  className="mt-1 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                />
-                <span className="text-sm text-gray-700 dark:text-gray-300">
+            <View style={styles.policyContainer}>
+              <TouchableOpacity
+                style={styles.checkboxContainer}
+                onPress={() => setAgreedToPolicies(!agreedToPolicies)}
+              >
+                <View style={[styles.checkbox, agreedToPolicies && styles.checkboxChecked]}>
+                  {agreedToPolicies && <Text style={styles.checkboxCheck}>✓</Text>}
+                </View>
+                <Text style={styles.policyText}>
                   I agree to the{' '}
-                  <a
-                    href={POLICY_CONFIG.termsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-green-600 hover:text-green-500 underline"
-                  >
+                  <Text style={styles.link} onPress={() => openURL(POLICY_CONFIG.termsUrl)}>
                     Terms and Conditions
-                  </a>
+                  </Text>
                   {' '}and{' '}
-                  <a
-                    href={POLICY_CONFIG.privacyUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-green-600 hover:text-green-500 underline"
-                  >
+                  <Text style={styles.link} onPress={() => openURL(POLICY_CONFIG.privacyUrl)}>
                     Privacy Policy
-                  </a>
-                </span>
-              </label>
-            </div>
+                  </Text>
+                </Text>
+              </TouchableOpacity>
+            </View>
           )}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {mode === 'signup' && (
-              <div>
-                <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Full Name
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                  <input
-                    id="fullName"
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white transition-colors"
-                    placeholder="Enter your full name"
-                  />
-                </div>
-              </div>
-            )}
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white transition-colors"
-                  placeholder="Enter your email"
+          {mode === 'signup' && (
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Full Name</Text>
+              <View style={styles.inputWrapper}>
+                <User name="user" size={20} color={isDark ? '#9CA3AF' : '#6B7280'} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  value={fullName}
+                  onChangeText={setFullName}
+                  placeholder="Enter your full name"
+                  placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
+                  autoCapitalize="words"
+                  autoComplete="name"
                 />
-              </div>
-            </div>
+              </View>
+            </View>
+          )}
 
-            {mode !== 'reset' && (
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                  <input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={6}
-                    className="w-full pl-10 pr-12 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white transition-colors"
-                    placeholder="Enter your password (min 6 characters)"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 h-5 w-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-                  >
-                    {showPassword ? <EyeOff /> : <Eye />}
-                  </button>
-                </div>
-              </div>
-            )}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Email Address</Text>
+            <View style={styles.inputWrapper}>
+              <Mail name="mail" size={20} color={isDark ? '#9CA3AF' : '#6B7280'} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="Enter your email"
+                placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                autoCorrect={false}
+              />
+            </View>
+          </View>
 
-            {message && (
-              <div className={`p-3 rounded-lg text-sm ${
-                message.includes('Check your email') 
-                  ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
-                  : message.includes('created successfully') || message.includes('Account created')
-                  ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
-                  : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'
-              }`}>
+          {mode !== 'reset' && (
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Password</Text>
+              <View style={styles.inputWrapper}>
+                <Lock name="lock" size={20} color={isDark ? '#9CA3AF' : '#6B7280'} style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.input, { paddingRight: 48 }]}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Enter your password (min 6 characters)"
+                  placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoComplete="password"
+                  autoCorrect={false}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff name="eye-off" size={20} color={isDark ? '#9CA3AF' : '#6B7280'} />
+                  ) : (
+                    <Eye name="eye" size={20} color={isDark ? '#9CA3AF' : '#6B7280'} />
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {message && (
+            <View style={[
+              styles.messageContainer,
+              message.includes('Check your email') || message.includes('created successfully') || message.includes('Account created')
+                ? styles.successMessage
+                : styles.errorMessage
+            ]}>
+              <Text style={[
+                styles.messageText,
+                message.includes('Check your email') || message.includes('created successfully') || message.includes('Account created')
+                  ? styles.successText
+                  : styles.errorText
+              ]}>
                 {message}
-              </div>
-            )}
+              </Text>
+            </View>
+          )}
 
-            {error && (
-              <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
-              </div>
-            )}
-            <button
-              type="submit"
-              disabled={loading || !email || (mode !== 'reset' && !password) || (mode === 'signup' && (!fullName || !agreedToPolicies))}
-              className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-            >
-              {loading ? 'Loading...' : (
-                mode === 'signin' ? 'Sign In' :
-                mode === 'signup' ? 'Create Account' :
-                'Send Reset Link'
-              )}
-            </button>
-          </form>
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
 
-          <div className="mt-6 text-center">
+          <TouchableOpacity
+            style={[styles.button, isButtonDisabled && styles.buttonDisabled]}
+            onPress={handleSubmit}
+            disabled={isButtonDisabled}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.buttonText}>
+                {mode === 'signin' ? 'Sign In' :
+                  mode === 'signup' ? 'Create Account' :
+                    'Send Reset Link'}
+              </Text>
+            )}
+          </TouchableOpacity>
+
+          <View style={styles.footer}>
             {mode === 'signin' && (
               <>
-                <button
-                  onClick={() => onModeChange('reset')}
-                  className="text-green-600 hover:text-green-500 text-sm font-medium transition-colors"
+                <TouchableOpacity onPress={() => onModeChange('reset')}>
+                  <Text style={styles.linkButton}>Forgot your password?</Text>
+                </TouchableOpacity>
+                <Text style={styles.footerText}>Don't have an account?</Text>
+                <TouchableOpacity
+                  style={styles.secondaryButton}
+                  onPress={() => onModeChange('signup')}
                 >
-                  Forgot your password?
-                </button>
-                <p className="mt-4 text-base text-gray-600 dark:text-gray-400">
-                  Don't have an account?{' '}
-                </p>
-                <button
-                    onClick={() => onModeChange('signup')}
-                    className="w-full mt-3 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-                  >
-                    Create Account
-                </button>
+                  <Text style={styles.buttonText}>Create Account</Text>
+                </TouchableOpacity>
+
+                <View style={styles.policyFooter}>
+                  <Text style={styles.policyFooterText}>
+                    By using MyGlassCase, you agree to our{' '}
+                    <Text style={styles.link} onPress={() => openURL(POLICY_CONFIG.termsUrl)}>
+                      Terms and Conditions
+                    </Text>
+                    {' '}and{' '}
+                    <Text style={styles.link} onPress={() => openURL(POLICY_CONFIG.privacyUrl)}>
+                      Privacy Policy
+                    </Text>
+                  </Text>
+                </View>
               </>
             )}
-            
-            {/* Policy Links for Sign In Mode */}
-            {mode === 'signin' && (
-              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                  By using MyGlassCase, you agree to our{' '}
-                  <a
-                    href={POLICY_CONFIG.termsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-green-600 hover:text-green-500 underline"
-                  >
-                    Terms and Conditions
-                  </a>
-                  {' '}and{' '}
-                  <a
-                    href={POLICY_CONFIG.privacyUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-green-600 hover:text-green-500 underline"
-                  >
-                    Privacy Policy
-                  </a>
-                </p>
-              </div>
-            )}
+
             {mode === 'signup' && (
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Already have an account?{' '}
-                <button
-                  onClick={() => onModeChange('signin')}
-                  className="text-green-600 hover:text-green-500 font-medium transition-colors"
-                >
-                  Sign in
-                </button>
-              </p>
+              <View style={styles.footerLink}>
+                <Text style={styles.footerText}>Already have an account? </Text>
+                <TouchableOpacity onPress={() => onModeChange('signin')}>
+                  <Text style={styles.linkButton}>Sign in</Text>
+                </TouchableOpacity>
+              </View>
             )}
+
             {mode === 'reset' && (
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Remember your password?{' '}
-                <button
-                  onClick={() => onModeChange('signin')}
-                  className="text-green-600 hover:text-green-500 font-medium transition-colors"
-                >
-                  Sign in
-                </button>
-              </p>
+              <View style={styles.footerLink}>
+                <Text style={styles.footerText}>Remember your password? </Text>
+                <TouchableOpacity onPress={() => onModeChange('signin')}>
+                  <Text style={styles.linkButton}>Sign in</Text>
+                </TouchableOpacity>
+              </View>
             )}
-          </div>
-        </div>
-      </div>
-    </div>
+          </View>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
+
+const createStyles = (isDark: boolean) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: isDark ? '#111827' : '#F0FDF4',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: 16,
+  },
+  formContainer: {
+    backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: isDark ? '#FFFFFF' : '#111827',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: isDark ? '#D1D5DB' : '#6B7280',
+    textAlign: 'center',
+  },
+  policyContainer: {
+    marginBottom: 16,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: isDark ? '#4B5563' : '#D1D5DB',
+    borderRadius: 4,
+    marginRight: 12,
+    marginTop: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#16A34A',
+    borderColor: '#16A34A',
+  },
+  checkboxCheck: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  policyText: {
+    flex: 1,
+    fontSize: 13,
+    color: isDark ? '#D1D5DB' : '#374151',
+    lineHeight: 18,
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: isDark ? '#D1D5DB' : '#374151',
+    marginBottom: 8,
+  },
+  inputWrapper: {
+    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  inputIcon: {
+    position: 'absolute',
+    left: 12,
+    zIndex: 1,
+  },
+  input: {
+    flex: 1,
+    height: 48,
+    paddingLeft: 44,
+    paddingRight: 16,
+    backgroundColor: isDark ? '#374151' : '#FFFFFF',
+    borderWidth: 1,
+    borderColor: isDark ? '#4B5563' : '#D1D5DB',
+    borderRadius: 8,
+    fontSize: 16,
+    color: isDark ? '#FFFFFF' : '#111827',
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: 12,
+    padding: 4,
+  },
+  messageContainer: {
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  successMessage: {
+    backgroundColor: isDark ? '#064E3B20' : '#DCFCE7',
+  },
+  errorMessage: {
+    backgroundColor: isDark ? '#7F1D1D20' : '#FEE2E2',
+  },
+  messageText: {
+    fontSize: 13,
+  },
+  successText: {
+    color: isDark ? '#34D399' : '#166534',
+  },
+  errorContainer: {
+    padding: 12,
+    backgroundColor: isDark ? '#7F1D1D20' : '#FEE2E2',
+    borderWidth: 1,
+    borderColor: isDark ? '#991B1B' : '#FCA5A5',
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: isDark ? '#FCA5A5' : '#991B1B',
+    fontSize: 13,
+  },
+  button: {
+    backgroundColor: '#16A34A',
+    height: 48,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  buttonDisabled: {
+    backgroundColor: '#86EFAC',
+    opacity: 0.6,
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  footer: {
+    alignItems: 'center',
+  },
+  footerLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  footerText: {
+    fontSize: 14,
+    color: isDark ? '#9CA3AF' : '#6B7280',
+  },
+  linkButton: {
+    fontSize: 14,
+    color: '#16A34A',
+    fontWeight: '600',
+  },
+  link: {
+    color: '#16A34A',
+    textDecorationLine: 'underline',
+  },
+  secondaryButton: {
+    backgroundColor: '#16A34A',
+    height: 48,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 12,
+    width: '100%',
+  },
+  policyFooter: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: isDark ? '#374151' : '#E5E7EB',
+  },
+  policyFooterText: {
+    fontSize: 11,
+    color: isDark ? '#9CA3AF' : '#6B7280',
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+});

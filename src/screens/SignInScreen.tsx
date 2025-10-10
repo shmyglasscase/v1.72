@@ -1,14 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-// Placeholder - will be converted from AuthForm component
-// import { AuthForm } from '../components/auth/AuthForm';
+import { AuthForm } from '../components/auth/AuthForm';
 
 export function SignInScreen() {
+  const [mode, setMode] = useState<'signin' | 'signup' | 'reset'>('signin');
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.content}>
-        {/* TODO: Convert AuthForm to React Native */}
+        <AuthForm mode={mode} onModeChange={setMode} />
       </View>
     </SafeAreaView>
   );
@@ -17,10 +18,8 @@ export function SignInScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   content: {
     flex: 1,
-    padding: 20,
   },
 });
