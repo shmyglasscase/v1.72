@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { usePWA } from './usePWA';
-import { 
+import { useNotifications } from './useNotifications';
+import {
   getActiveCustomFields,
   getCategoryNameById,
   getConditionNameById,
@@ -47,7 +47,7 @@ export const useInventory = () => {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'active' | 'archived'>('active');
   const { user } = useAuth();
-  const { showNotification } = usePWA();
+  const { showNotification } = useNotifications();
 
   const getConditionId = (condition: string): string => {
     const conditionMap: { [key: string]: string } = {
