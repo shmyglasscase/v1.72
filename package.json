@@ -43,6 +43,7 @@
     "expo-system-ui": "~3.0.0",
     "expo-updates": "~0.25.0",
     "expo-web-browser": "~13.0.0",
+    "lucide-react-native": "^0.454.0",
     "react": "18.2.0",
     "react-native": "0.74.2",
     "react-native-flash-list": "1.6.4",
